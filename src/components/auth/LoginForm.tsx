@@ -62,17 +62,7 @@ export default function LoginForm() {
         onChange={(e) => setPassword(e.target.value)}
         error={errors.password}
       />
-      <Input
-        label="OTP (only if requested)"
-        name="otp"
-        inputMode="numeric"
-        maxLength={6}
-        autoComplete="one-time-code"
-        value={otp}
-        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-        error={errors.otp}
-        hint="Leave empty unless you are asked for an OTP."
-      />
+     
       <div className="flex justify-end text-sm">
       <Link href="/login" className="text-navy-600 hover:underline">Forgot password?</Link>
       </div>

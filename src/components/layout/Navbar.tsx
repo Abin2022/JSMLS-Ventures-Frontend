@@ -26,7 +26,7 @@ export default function Navbar() {
           aria-expanded={open}
           aria-controls="primary-nav"
           onClick={() => setOpen((v) => !v)}
-          className="h-10 w-10 cursor-pointer rounded-lg border border-white/30 text-xl md:hidden"
+          className="ml-auto h-10 w-10 cursor-pointer rounded-lg border border-white/30 text-xl md:hidden"
         >
           {open ? "✕" : "☰"}
         </button>
