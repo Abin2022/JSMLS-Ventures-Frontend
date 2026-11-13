@@ -1,35 +1,55 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
-import { resendOtpDemo, verifyOtpDemo } from "@/services/auth";
+import { sendOtp, verifyOtp } from "@/services/auth";
 
 const LENGTH = 6;
 const RESEND_SECONDS = 30;
+const EXPIRY_SECONDS = 300;
 const emptyDigits = () => Array<string>(LENGTH).fill("");
 
-export default function OtpForm() {
+const formatTime = (s: number) =>
+  `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+export default function OtpForm({ email }: { email: string }) {
+  const router = useRouter();
   const [digits, setDigits] = useState<string[]>(emptyDigits());
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(false);
   const [cooldown, setCooldown] = useState(RESEND_SECONDS);
+  const [expiresIn, setExpiresIn] = useState(EXPIRY_SECONDS);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Focus the first box when the page opens.
   useEffect(() => {
     inputs.current[0]?.focus();
   }, []);
 
-  // Count down the resend timer.
+  // Resend timer
   useEffect(() => {
     if (cooldown <= 0) return;
     const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
     return () => clearTimeout(t);
   }, [cooldown]);
+
+  // Expiry timer
+  useEffect(() => {
+    if (expiresIn <= 0 || verified) return;
+    const t = setTimeout(() => setExpiresIn((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [expiresIn, verified]);
+
+  // Redirect to login after success
+  useEffect(() => {
+    if (!verified) return;
+    const t = setTimeout(() => router.push("/login"), 1500);
+    return () => clearTimeout(t);
+  }, [verified, router]);
 
   const focusAt = (i: number) => inputs.current[i]?.focus();
 
@@ -40,7 +60,6 @@ export default function OtpForm() {
       setDigits((d) => d.map((v, k) => (k === i ? "" : v)));
       return;
     }
-    // Several digits at once (paste or autofill) fill the following boxes.
     const next = [...digits];
     clean
       .slice(0, LENGTH - i)
@@ -72,22 +91,17 @@ export default function OtpForm() {
     setSuccess(null);
 
     const code = digits.join("");
-    if (code.length === 0) {
-      setError("Enter the 6-digit OTP.");
-      return;
-    }
-    if (code.length < LENGTH) {
-      setError("The OTP must be 6 digits.");
-      return;
-    }
+    if (code.length === 0) return setError("Enter the 6-digit OTP.");
+    if (code.length < LENGTH) return setError("The OTP must be 6 digits.");
+    if (expiresIn <= 0) return setError("This OTP has expired. Please request a new one.");
 
     setLoading(true);
-    const res = await verifyOtpDemo(code);
+    const res = await verifyOtp(email, code);
     setLoading(false);
 
     if (res.ok) {
-      setVerified(true);
       setSuccess(res.message);
+      setVerified(true);
     } else {
       setError(res.message);
       setDigits(emptyDigits());
@@ -100,9 +114,18 @@ export default function OtpForm() {
     setError(null);
     setSuccess(null);
     setDigits(emptyDigits());
-    const res = await resendOtpDemo();
-    setSuccess(res.message);
-    setCooldown(RESEND_SECONDS);
+    setLoading(true);
+    const res = await sendOtp(email);
+    setLoading(false);
+
+    if (res.ok) {
+      setSuccess(res.message);
+      setCooldown(res.resendAfterSeconds);
+      setExpiresIn(res.expiresInSeconds);
+    } else {
+      setError(res.message);
+      if (res.retryAfterSeconds) setCooldown(res.retryAfterSeconds);
+    }
     focusAt(0);
   }
 
@@ -131,6 +154,12 @@ export default function OtpForm() {
         ))}
       </div>
 
+      {!verified && (
+        <p className="text-center text-sm text-muted">
+          {expiresIn > 0 ? `Code expires in ${formatTime(expiresIn)}` : "This OTP has expired. Request a new one."}
+        </p>
+      )}
+
       {error && <Alert tone="error">{error}</Alert>}
       {success && <Alert tone="success">{success}</Alert>}
 
@@ -143,7 +172,7 @@ export default function OtpForm() {
         </Link>
       ) : (
         <>
-          <Button type="submit" block disabled={loading}>
+          <Button type="submit" block disabled={loading || expiresIn <= 0}>
             {loading ? "Please wait…" : "Verify"}
           </Button>
           <div className="text-center text-sm text-muted">

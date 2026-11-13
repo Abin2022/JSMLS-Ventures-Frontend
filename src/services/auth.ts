@@ -22,17 +22,67 @@ export async function registerDemo(_payload: RegisterPayload): Promise<ServiceRe
 /* eslint-enable @typescript-eslint/no-unused-vars */
 
 
-export async function verifyOtpDemo(code: string): Promise<ServiceResult> {
-  await wait(600);
-  if (code === "123456") {    // Demo OTP code for testing change this place later when the backend is connected.
-    return { ok: true, message: "OTP verified (demo). Your account would now be activated." };
+
+const SEND_OTP_PATH = "/auth/send-otp";
+const VERIFY_OTP_PATH = "/auth/verify-otp";
+
+export type SendOtpResult =
+  | { ok: true; message: string; expiresInSeconds: number; resendAfterSeconds: number }
+  | { ok: false; message: string; retryAfterSeconds?: number };
+
+export type VerifyOtpResult = { ok: boolean; message: string };
+
+async function postJson(path: string, body: unknown) {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { res, data };
+}
+
+export async function sendOtp(email: string): Promise<SendOtpResult> {
+  try {
+    const { res, data } = await postJson(SEND_OTP_PATH, { email });
+    if (res.ok) {
+      return {
+        ok: true,
+        message: data.message ?? "OTP sent to your email.",
+        expiresInSeconds: data.expiresInSeconds ?? 300,
+        resendAfterSeconds: data.resendAfterSeconds ?? 30,
+      };
+    }
+    if (res.status === 429) {
+      const retry = Number(res.headers.get("Retry-After")) || data.retryAfterSeconds || 60;
+      return {
+        ok: false,
+        message: data.message ?? "Too many requests. Please try again later.",
+        retryAfterSeconds: retry,
+      };
+    }
+    if (res.status === 400) {
+      return { ok: false, message: data.message ?? "Please check the email address and try again." };
+    }
+    return { ok: false, message: "Could not send the OTP. Please try again later." };
+  } catch {
+    return { ok: false, message: "Cannot reach the server. Check your connection and try again." };
   }
-  return { ok: false, message: "Incorrect OTP. Please check the code and try again." };
 }
 
-export async function resendOtpDemo(): Promise<ServiceResult> {
-  await wait(600);
-  return { ok: true, message: "A new OTP has been sent (demo: no real message is sent)." };
+export async function verifyOtp(email: string, otp: string): Promise<VerifyOtpResult> {
+  try {
+    const { res, data } = await postJson(VERIFY_OTP_PATH, { email, otp });
+    if (res.ok) {
+      return { ok: true, message: data.message ?? "Email verified successfully." };
+    }
+    if (res.status === 429) {
+      return { ok: false, message: data.message ?? "Too many attempts. Please wait and try again." };
+    }
+    // 400/401/410 etc.: wrong or expired OTP. Show the backend's own message.
+    return { ok: false, message: data.message ?? "Incorrect or expired OTP. Please try again." };
+  } catch {
+    return { ok: false, message: "Cannot reach the server. Check your connection and try again." };
+  }
 }
-
 

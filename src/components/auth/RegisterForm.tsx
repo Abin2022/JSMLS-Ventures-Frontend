@@ -1,9 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import Modal from "@/components/ui/Modal";
 import { registerDemo } from "@/services/auth";
 import { isEmail, isIndianMobile, passwordError } from "@/lib/validators";
 
@@ -11,12 +13,14 @@ type Field = "fullName" | "email" | "mobile" | "password" | "confirm" | "terms";
 type Errors = Partial<Record<Field, string>>;
 
 export default function RegisterForm() {
+  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [terms, setTerms] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -49,9 +53,12 @@ export default function RegisterForm() {
       acceptedTerms: terms,
     });
     setLoading(false);
+
+    if (res.ok) {
+      router.push(`/verify-otp?email=${encodeURIComponent(email.trim())}`);
+      return;
+    }
     setMessage(res.message);
-    setPassword("");
-    setConfirm("");
   }
 
   return (
@@ -104,22 +111,55 @@ export default function RegisterForm() {
       />
 
       <div className="grid gap-1.5">
-  <label className="flex items-start gap-2.5 text-sm">
-    <input
-      type="checkbox"
-      className="mt-1"
-      checked={terms}
-      onChange={(e) => setTerms(e.target.checked)}
-    />
-      <span>I accept the Terms and Privacy Policy.</span>
-      </label>
-       {errors.terms && <span className="text-sm text-red-600">{errors.terms}</span>}
-     </div>
+        <label className="flex items-start gap-2.5 text-sm">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={terms}
+            onChange={(e) => setTerms(e.target.checked)}
+          />
+          <span>
+            I accept the{" "}
+            <button
+              type="button"
+              onClick={() => setShowTerms(true)}
+              className="cursor-pointer font-semibold text-navy-600 underline hover:text-navy-700"
+            >
+              Terms and Privacy Policy
+            </button>
+            .
+          </span>
+        </label>
+        {errors.terms && <span className="text-sm text-red-600">{errors.terms}</span>}
+      </div>
 
-      {message && <Alert tone="success">{message}</Alert>}
+      {message && <Alert tone="error">{message}</Alert>}
       <Button type="submit" block disabled={loading}>
         {loading ? "Please wait…" : "Create account"}
       </Button>
+
+      <Modal open={showTerms} onClose={() => setShowTerms(false)} title="Terms and Privacy Policy">
+        <p className="mb-3 rounded-lg bg-yellow-50 px-3 py-2 text-yellow-900">
+          Sample text for demonstration only. The final Terms and Privacy Policy will be added
+          after legal review.
+        </p>
+        <h3 className="mb-1 font-semibold text-navy-900">1. Demonstration platform</h3>
+        <p className="mb-3">
+          Victory Club is a demonstration platform. No real money is collected, moved or paid out,
+          and nothing shown represents income or any payment entitlement.
+        </p>
+        <h3 className="mb-1 font-semibold text-navy-900">2. Your information</h3>
+        <p className="mb-3">
+          We collect only what is necessary: your full name, email address and mobile number. Your
+          details are used to create and verify your account.
+        </p>
+        <h3 className="mb-1 font-semibold text-navy-900">3. Account security</h3>
+        <p className="mb-3">
+          Keep your password and OTP private. You are responsible for activity on your account.
+        </p>
+        <h3 className="mb-1 font-semibold text-navy-900">4. Contact</h3>
+        <p>Questions about these terms can be sent to the platform administrator.</p>
+      </Modal>
     </form>
   );
 }
