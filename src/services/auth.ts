@@ -1,15 +1,61 @@
-import type { LoginPayload, RegisterPayload, ServiceResult } from "@/types";
-
+import type { LoginPayload, RegisterPayload, ServiceResult, Role } from "@/types";
 // Used later when the Next.js REST API is connected.
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
-export async function loginDemo(_payload: LoginPayload): Promise<ServiceResult> {
-  await wait(600);
-  return { ok: true, message: "Demo mode: the form works, but no backend is connected yet or backend connectivity is not established. Nothing was sent." };
+// /* eslint-disable @typescript-eslint/no-unused-vars */
+// export async function loginDemo(_payload: LoginPayload): Promise<ServiceResult> {
+//   await wait(600);
+//   return { ok: true, message: "Demo mode: the form works, but no backend is connected yet or backend connectivity is not established. Nothing was sent." };
+// }
+
+const LOGIN_PATH = "/auth/login";
+
+export type LoginUser = { userId?: string; fullName?: string; role?: Role };
+
+export type LoginResult =
+  | { ok: true; message: string; user?: LoginUser }
+  | { ok: false; message: string; notVerified?: boolean };
+
+export async function loginUser(payload: LoginPayload): Promise<LoginResult> {
+  try {
+    const { res, data } = await postJson(LOGIN_PATH, {
+      identifier: payload.identifier, // User ID or email. Rename if the backend uses other field names.
+      password: payload.password,
+      ...(payload.otp ? { otp: payload.otp } : {}),
+    });
+
+    if (res.ok) {
+      return { ok: true, message: data.message ?? "Login successful.", user: data.user };
+    }
+    if (res.status === 401) {
+      // One message for every bad-credential case, so it never reveals which part was wrong.
+      return { ok: false, message: "Invalid User ID/email or password." };
+    }
+    if (res.status === 403) {
+      return {
+        ok: false,
+        message: data.message ?? "Your account is not verified or is not active.",
+        notVerified: data.code === "EMAIL_NOT_VERIFIED",
+      };
+    }
+    if (res.status === 429) {
+      return { ok: false, message: data.message ?? "Too many login attempts. Please try again later." };
+    }
+    if (res.status === 400) {
+      return { ok: false, message: data.message ?? "Please check your details and try again." };
+    }
+    return { ok: false, message: "Login failed. Please try again later." };
+  } catch {
+    return { ok: false, message: "Cannot reach the server. Check your connection and try again." };
+  }
 }
+
+
+
+
+
 
 export async function registerDemo(_payload: RegisterPayload): Promise<ServiceResult> {
   await wait(600);
