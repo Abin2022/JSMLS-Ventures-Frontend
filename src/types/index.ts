@@ -11,4 +11,8 @@ export type RegisterPayload = {
   acceptedTerms: boolean;
 };
 
+export type AccountStatus = "active" | "inactive" | "suspended";
+
+
+
 export type ServiceResult = { ok: boolean; message: string };
