@@ -13,6 +13,21 @@ export type RegisterPayload = {
 
 export type AccountStatus = "active" | "inactive" | "suspended";
 
+export type DashboardData = {
+  fullName: string;
+  userId: string;
+  status: AccountStatus;
+  stage: string;
+  totalLevels: number;
+};
+
+export type ProfileData = {
+  fullName: string;
+  userId: string;
+  email: string;
+  mobile: string;
+};
+
 
 
 export type ServiceResult = { ok: boolean; message: string };

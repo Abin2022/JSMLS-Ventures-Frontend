@@ -6,7 +6,7 @@ import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
-import { registerDemo } from "@/services/auth";
+import { registerUser } from "@/services/auth"; // Changed from registerDemo
 import { isEmail, isIndianMobile, passwordError } from "@/lib/validators";
 
 type Field = "fullName" | "email" | "mobile" | "password" | "confirm" | "terms";
@@ -45,16 +45,20 @@ export default function RegisterForm() {
     if (Object.keys(e).length) return;
 
     setLoading(true);
-    const res = await registerDemo({
+    
+    // Call the real backend function
+    const res = await registerUser({
       fullName: fullName.trim(),
       email: email.trim(),
       mobile: mobile.replace(/[\s-]/g, ""),
       password,
-      acceptedTerms: terms,
+      acceptedTerms: terms, // Ensure the backend expects this, or remove it if unused
     });
+    
     setLoading(false);
 
     if (res.ok) {
+      // Redirect to OTP verification page
       router.push(`/verify-otp?email=${encodeURIComponent(email.trim())}`);
       return;
     }
