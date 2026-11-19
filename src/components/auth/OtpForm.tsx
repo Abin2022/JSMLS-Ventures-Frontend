@@ -8,7 +8,7 @@ import Button from "@/components/ui/Button";
 import { sendOtp, verifyOtp } from "@/services/auth";
 
 const LENGTH = 6;
-const RESEND_SECONDS = 30;
+const RESEND_SECONDS = 60;
 const EXPIRY_SECONDS = 300;
 const emptyDigits = () => Array<string>(LENGTH).fill("");
 

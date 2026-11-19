@@ -94,8 +94,8 @@ export async function sendOtp(email: string): Promise<SendOtpResult> {
       return {
         ok: true,
         message: data.message ?? "OTP sent to your email.",
-        expiresInSeconds: data.expiresInSeconds ?? 300,
-        resendAfterSeconds: data.resendAfterSeconds ?? 30,
+        expiresInSeconds: data.expiresIn ?? data.expiresInSeconds ?? 300,
+        resendAfterSeconds: data.resendAfterSeconds ?? 60,
       };
     }
     

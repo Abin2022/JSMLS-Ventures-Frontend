@@ -90,9 +90,7 @@ export default function DashboardContent() {
           </h1>
           <p className="text-muted">Here is your Victory Club overview.</p>
         </div>
-        <span className="rounded-full bg-gold-500 px-3 py-1 text-xs font-bold tracking-wider text-black">
-          DEMO
-        </span>
+        
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -111,9 +109,7 @@ export default function DashboardContent() {
         />
       </div>
 
-      <p className="mt-6 rounded-[10px] border border-yellow-300 bg-yellow-50 px-3.5 py-3 text-sm text-yellow-900">
-        Illustrative interface only. No actual payment entitlement or income is represented.
-      </p>
+     
     </>
   );
 }
